@@ -25,11 +25,15 @@ def _parse_dep(raw):
         version_and_const = raw[paren_start_i + 1:paren_end_i].strip()
         raw = raw[:paren_start_i] + raw[paren_end_i + 1:]
 
-        vconst_i = version_and_const.find(" ")
-        if vconst_i == -1:
-            fail('invalid version string %s expected a version constraint ">=", "=", ">=", "<<", ">>"' % version_and_const)
-
-        version = (version_and_const[:vconst_i], version_and_const[vconst_i + 1:])
+        # Check for known version constraints at the start of version_and_const
+        version = None
+        for constraint in [">=", "<=", "=", "<", ">"]:
+            if version_and_const.startswith(constraint):
+                version = (constraint, version_and_const[len(constraint):].strip())
+                break
+        
+        if version == None:
+            fail('invalid version string %s expected a version constraint ">=", "=", "<=", "<<", ">>"' % version_and_const)
 
     # Depends: python3:any
     # is equivalent to
@@ -60,6 +64,10 @@ def _version_relop(va, vb, op):
     if op == "<<":
         return version_lib.lt(va, vb)
     elif op == ">>":
+        return version_lib.gt(va, vb)
+    elif op == "<":
+        return version_lib.lt(va, vb)
+    elif op == ">":
         return version_lib.gt(va, vb)
     elif op == "<=":
         return version_lib.lte(va, vb)
